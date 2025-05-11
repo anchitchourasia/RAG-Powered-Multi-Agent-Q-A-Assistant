@@ -35,7 +35,7 @@ st.info("Download these sample PDFs and drag them into the uploader below to tes
 sample_files = {
     "📄 FAQ.pdf": "us_census/faq.pdf",
     "📄 Privacy Policy.pdf": "us_census/privacy.pdf",
-    "📄 Terms.pdf": "us_census/terms.pdf"
+    "📄 Terms.pdf": "us_census/product.pdf"
 }
 
 for label, path in sample_files.items():
