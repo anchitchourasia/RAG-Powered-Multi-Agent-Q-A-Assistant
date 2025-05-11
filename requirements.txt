@@ -1,0 +1,6 @@
+streamlit
+langchain
+langchain-nvidia-ai-endpoints
+langchain-community
+pinecone>=3.0.0
+python-dotenv
