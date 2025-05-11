@@ -1,26 +1,64 @@
-# 💬 RAG Chat Assistant (Pinecone v3 + NVIDIA LLaMa3 + Tools)
+# 💬 RAG-Powered Multi-Agent Q&A Assistant (Streamlit + Pinecone + LLaMa3)
 
-An intelligent, multi-modal assistant that:
-- 📚 Answers questions based on uploaded PDFs using RAG (Retrieval-Augmented Generation)
-- 🤖 Falls back to LLaMa3-70B when document context isn't available
-- 🧮 Supports math questions with a calculator tool
-- 🖼️ Clean Streamlit chat UI with document chunk source highlighting
+This application is a document-aware chatbot built with **LangChain**, **NVIDIA LLaMa3**, and **Pinecone**, capable of answering questions by referencing uploaded PDFs or using its own language model intelligence when documents are irrelevant.
 
 ---
 
-## 🔧 Features
+## 🚀 Live App
 
-- 🔍 PDF chunking and vector embedding using NVIDIAEmbeddings
-- 🧠 Pinecone vector store (v3 SDK)
-- 🤝 Seamless integration with `meta/llama3-70b-instruct`
-- 📦 Context-aware RAG with fallback to model-only answers
-- ✨ Smart UI with context expander & chat memory
+👉 [Click here to try it on Streamlit Cloud](https://anchitchourasia-rag-chat.streamlit.app/)
 
 ---
 
-## 📁 Setup
+## 📂 Features
 
-### 1. Clone the project
+✅ Upload one or more PDF documents  
+✅ Embed them into Pinecone vector DB with chunking  
+✅ Ask questions — get context-based answers from the documents  
+✅ If the answer isn't in the PDFs, fallback to LLaMa3's own knowledge  
+✅ Built-in calculator agent for math queries  
+✅ Clean, chat-style Streamlit UI  
+✅ Sample PDFs are included for demo testing  
+
+---
+
+## 📄 Example PDFs
+
+These documents are available directly in the app for testing:
+- `FAQ.pdf`
+- `Privacy Policy.pdf`
+- `Terms.pdf`
+
+Users can download and re-upload them for live embedding.
+
+---
+
+## 🤖 Example Questions
+
+- What payment methods do you accept?  
+- What is your return policy?  
+- How do you use my personal data?  
+- What are the terms of service for cancellations?  
+- Calculate 43 * 17  
+- Define artificial intelligence  
+- What is quantum computing?
+
+---
+
+## 🛠️ Technologies Used
+
+- 🧠 LLM: `meta/llama3-70b-instruct` via NVIDIA NIM
+- 🔍 Vector DB: Pinecone v3 (serverless, cosine)
+- 🔗 LangChain & NVIDIA Embeddings
+- 🌐 Deployed with Streamlit Cloud
+- 🐍 Python 3.10+
+
+---
+
+## 📦 How to Run Locally
+
+1. **Clone the repository**
+
 ```bash
-git clone https://github.com/yourname/rag-chat-assistant.git
-cd rag-chat-assistant
+git clone https://github.com/anchitchourasia/RAG-Powered-Multi-Agent-Q-A-Assistant.git
+cd RAG-Powered-Multi-Agent-Q-A-Assistant
