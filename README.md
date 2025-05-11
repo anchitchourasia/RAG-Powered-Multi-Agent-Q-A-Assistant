@@ -56,6 +56,35 @@ Users can download and re-upload them for live embedding.
 ---
 
 ## 📦 How to Run Locally
+Install dependencies
+
+bash
+Copy
+Edit
+pip install -r requirements.txt
+Set environment variables
+
+Create a .env file:
+
+ini
+Copy
+Edit
+NVIDIA_API_KEY=your_nvidia_api_key
+PINECONE_API_KEY=your_pinecone_api_key
+PINECONE_ENV=your_pinecone_env
+Run the app
+
+bash
+Copy
+Edit
+streamlit run main.py
+📤 Submit Assignment
+Public App URL: https://anchitchourasia-rag-chat.streamlit.app
+
+yaml
+Copy
+Edit
+
 
 1. **Clone the repository**
 
