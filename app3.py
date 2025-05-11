@@ -4,13 +4,12 @@ import time
 import uuid
 from dotenv import load_dotenv
 from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings, ChatNVIDIA
-from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
 
 # Load environment variables
 load_dotenv()
-os.environ['NVIDIA_API_KEY'] = os.getenv("NVIDIA_API_KEY")
 
 # Pinecone setup
 pinecone_api_key = os.getenv("PINECONE_API_KEY")
@@ -18,6 +17,7 @@ pinecone_env = os.getenv("PINECONE_ENV")
 index_name = "rag"
 namespace = "us_census_namespace"
 
+# Initialize Pinecone v3
 pc = Pinecone(api_key=pinecone_api_key)
 index = pc.Index(index_name)
 
@@ -25,54 +25,62 @@ index = pc.Index(index_name)
 st.set_page_config(page_title="RAG Chat Assistant", layout="wide")
 st.title("💬 Chat with Your Documents (Pinecone v3 + LLaMa3 + Tools)")
 
+# Chat history init
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Document embedding
-def vector_embedding():
-    st.session_state.embeddings = NVIDIAEmbeddings()
-    loader = PyPDFDirectoryLoader(r"D:\new\us_census")  # Update as needed
-    docs = loader.load()
+# Upload PDFs
+uploaded_files = st.file_uploader("📄 Upload PDF files", type="pdf", accept_multiple_files=True)
 
-    if not docs:
-        st.error("No documents found.")
+# Document Embedding
+def vector_embedding():
+    if not uploaded_files:
+        st.warning("Please upload one or more PDF files.")
         return
 
-    st.success(f"📄 Loaded {len(docs)} documents.")
+    st.session_state.embeddings = NVIDIAEmbeddings()
+    docs = []
+
+    for uploaded_file in uploaded_files:
+        loader = PyPDFLoader(uploaded_file)
+        docs.extend(loader.load())
+
+    if not docs:
+        st.error("No documents could be parsed.")
+        return
+
+    st.success(f"📄 Loaded {len(docs)} PDF(s).")
 
     splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=50)
-    chunks = splitter.split_documents(docs[:30])
-    st.success(f"✂️ Created {len(chunks)} chunks.")
+    chunks = splitter.split_documents(docs)
 
-    try:
-        texts = [doc.page_content for doc in chunks]
-        embeds = st.session_state.embeddings.embed_documents(texts)
+    texts = [doc.page_content for doc in chunks]
+    embeds = st.session_state.embeddings.embed_documents(texts)
 
-        vectors = []
-        for i, doc in enumerate(chunks):
-            uid = str(uuid.uuid4())
-            vectors.append({
-                "id": uid,
-                "values": embeds[i],
-                "metadata": {
-                    "source": doc.metadata.get("source", "unknown"),
-                    "content": doc.page_content,
-                    "chunk_number": i + 1
-                }
-            })
+    vectors = []
+    for i, doc in enumerate(chunks):
+        uid = str(uuid.uuid4())
+        vectors.append({
+            "id": uid,
+            "values": embeds[i],
+            "metadata": {
+                "source": doc.metadata.get("source", "uploaded_file"),
+                "content": doc.page_content,
+                "chunk_number": i + 1
+            }
+        })
 
-        index.upsert(vectors=vectors, namespace=namespace)
-        st.success("✅ Vectors stored in Pinecone.")
-    except Exception as e:
-        st.error(f"Upsert failed: {e}")
+    index.upsert(vectors=vectors, namespace=namespace)
+    st.success("✅ Vectors stored in Pinecone.")
 
+# Embed button
 if st.button("📄 Embed Documents"):
     vector_embedding()
 
-# LLaMa3 setup
+# LLM setup
 llm = ChatNVIDIA(model="meta/llama3-70b-instruct")
 
-# Tool router
+# Tool routing
 def route_query(query):
     query_lower = query.lower().strip()
     if any(op in query_lower for op in ["+", "-", "*", "/", "%", "calculate"]):
@@ -84,7 +92,7 @@ def route_query(query):
             return "calculator", "⚠️ Invalid math expression."
     return "rag", None
 
-# Pinecone search
+# Search vector DB
 def search_similar_chunks(query, top_k=3):
     embed = st.session_state.embeddings.embed_query(query)
     return index.query(
@@ -111,7 +119,6 @@ if user_query:
             contexts = [m.get("metadata", {}).get("content", "") for m in matches]
             combined_context = "\n".join(contexts)
 
-            # ✅ Relaxed prompt
             prompt = f"""
 Use the context below to help answer the question. If the context is not relevant or missing, answer the question using your own knowledge.
 
@@ -124,7 +131,6 @@ Question: {user_query}
             response = llm.invoke(prompt)
             final_answer = response.content
 
-            # ✅ Store answer and context together
             st.session_state.chat_history.append((
                 "assistant_with_context",
                 {
@@ -136,7 +142,7 @@ Question: {user_query}
         except Exception as e:
             st.session_state.chat_history.append(("assistant", f"❌ RAG failed: {e}"))
 
-# Render chat history
+# Chat history rendering
 for speaker, message in st.session_state.chat_history:
     if speaker == "assistant_with_context":
         with st.chat_message("assistant"):
@@ -144,7 +150,7 @@ for speaker, message in st.session_state.chat_history:
             with st.expander("📚 Retrieved Document Chunks"):
                 for match in message["context"]:
                     meta = match.get("metadata", {})
-                    st.markdown(f"**📄 Source:** `{meta.get('source', 'unknown')}`")
+                    st.markdown(f"**📄 Source:** `{meta.get('source', 'uploaded_file')}`")
                     st.markdown(f"**🔢 Chunk:** {meta.get('chunk_number', 'N/A')}`")
                     st.markdown(meta.get("content", "⚠️ No content available."))
                     st.markdown("---")
