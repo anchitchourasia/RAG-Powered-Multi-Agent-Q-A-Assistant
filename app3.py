@@ -8,7 +8,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from pinecone import Pinecone
 
-# Load environment variables
+# Load environment variables (used locally)
 load_dotenv()
 
 # Pinecone setup
@@ -17,7 +17,7 @@ pinecone_env = os.getenv("PINECONE_ENV")
 index_name = "rag"
 namespace = "us_census_namespace"
 
-# Initialize Pinecone v3
+# Initialize Pinecone client
 pc = Pinecone(api_key=pinecone_api_key)
 index = pc.Index(index_name)
 
@@ -25,14 +25,37 @@ index = pc.Index(index_name)
 st.set_page_config(page_title="RAG Chat Assistant", layout="wide")
 st.title("💬 Chat with Your Documents (Pinecone v3 + LLaMa3 + Tools)")
 
-# Chat history init
+# Chat history state
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# Upload PDFs
+# 📥 Sample PDFs for download
+st.markdown("### 📥 Example PDF Files")
+st.info("Download these sample PDFs and drag them into the uploader below to test the assistant.")
+
+sample_files = {
+    "📄 FAQ.pdf": "us_census/faq.pdf",
+    "📄 Privacy Policy.pdf": "us_census/privacy_policy.pdf",
+    "📄 Terms.pdf": "us_census/terms.pdf"
+}
+
+for label, path in sample_files.items():
+    try:
+        with open(path, "rb") as f:
+            st.download_button(
+                label=label,
+                data=f,
+                file_name=os.path.basename(path),
+                mime="application/pdf",
+                use_container_width=True
+            )
+    except FileNotFoundError:
+        st.warning(f"⚠️ File not found: {path}")
+
+# 📤 Upload user PDFs
 uploaded_files = st.file_uploader("📄 Upload PDF files", type="pdf", accept_multiple_files=True)
 
-# Document Embedding
+# 📦 Embed uploaded documents
 def vector_embedding():
     if not uploaded_files:
         st.warning("Please upload one or more PDF files.")
@@ -77,10 +100,10 @@ def vector_embedding():
 if st.button("📄 Embed Documents"):
     vector_embedding()
 
-# LLM setup
+# LLaMa model
 llm = ChatNVIDIA(model="meta/llama3-70b-instruct")
 
-# Tool routing
+# Route calculator vs rag
 def route_query(query):
     query_lower = query.lower().strip()
     if any(op in query_lower for op in ["+", "-", "*", "/", "%", "calculate"]):
@@ -92,7 +115,7 @@ def route_query(query):
             return "calculator", "⚠️ Invalid math expression."
     return "rag", None
 
-# Search vector DB
+# Vector search
 def search_similar_chunks(query, top_k=3):
     embed = st.session_state.embeddings.embed_query(query)
     return index.query(
@@ -142,7 +165,7 @@ Question: {user_query}
         except Exception as e:
             st.session_state.chat_history.append(("assistant", f"❌ RAG failed: {e}"))
 
-# Chat history rendering
+# Render chat history
 for speaker, message in st.session_state.chat_history:
     if speaker == "assistant_with_context":
         with st.chat_message("assistant"):
